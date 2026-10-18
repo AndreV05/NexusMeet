@@ -184,3 +184,56 @@ Para garantir a rastreabilidade e a consistência histórica do *backlog*, adoto
 2. Foi adicionada a *Label* (Etiqueta) amarela `Change Request` ao cartão.
 3. O motivo da mudança e a justificação técnica foram registados como um comentário fixado na própria *issue*, documentando a alteração na latência exigida e o impacto nos *Story Points*.
 
+--- 
+
+## Entrega 5: Análise de Desempenho e Qualidade do Processo
+
+**Integrantes do Grupo:** [Nome 1], [Nome 2], [Nome 3]
+
+### 1. Métricas Coletadas e Dados das Sprints
+
+A análise de desempenho do projeto NexusMeet baseou-se nos dados extraídos de duas Sprints completas de desenvolvimento.
+
+**Tabela de Dados Consolidados:**
+
+| Métrica | Sprint 1 | Sprint 2 | Variação |
+| :--- | :---: | :---: | :---: |
+| **Pontos Planejados** | 16 SP | 21 SP | +31.25% |
+| **Pontos Entregues (Velocity)** | 16 SP | 13 SP | -18.75% |
+| **Histórias Planejadas** | 3 | 4 | +1 |
+| **Histórias Concluídas** | 3 | 2 | -1 |
+| **Defeitos (Bugs) Reportados** | 1 | 4 | +300% |
+| **Taxa de Conclusão** | 100% | 61.9% | -38.1% |
+
+### 2. Análise da Velocity e Gráficos de Burndown
+
+**Análise da Velocity:**
+A *Velocity* da equipa demonstrou uma instabilidade considerável. Na Sprint 1, a equipa entregou os 16 Story Points planeados, atingindo uma taxa de sucesso de 100%. Encorajada por este resultado, a equipa assumiu 21 Story Points na Sprint 2. Contudo, apenas 13 pontos foram efetivamente entregues. Esta quebra de 18.75% na velocidade real, combinada com o aumento do volume de trabalho assumido, indica uma falha de planeamento (sobrecarga) e a necessidade de calibrar a capacidade produtiva da equipa em torno de uma média de 14 a 15 pontos por Sprint.
+
+**Análise do Burndown:**
+* **Burndown Sprint 1:** O gráfico apresentou uma quebra saudável em "escada", com entregas consistentes nos dias 5, 8 e 9, resultando em 0 pontos restantes no último dia. O fluxo de trabalho foi constante e alinhado com a linha ideal.
+* **Burndown Sprint 2:** O gráfico evidenciou uma linha horizontal prolongada nos primeiros 7 dias, sem qualquer entrega de valor (*flatline*). Apenas no dia 8 ocorreu a primeira descida acentuada (entrega de 8 pontos). O término da Sprint com 8 pontos residuais comprova que as tarefas ficaram bloqueadas ou em fase de testes por demasiado tempo, sem chegar a *Done*.
+
+### 3. Gargalos Identificados e Causas
+
+A degradação das métricas na Sprint 2 permitiu a identificação de dois gargalos principais no processo:
+
+1.  **Gargalo de *Deploy* e Testes (Ambiente de Staging):** A análise do Burndown (*flatline* inicial) revelou que as tarefas estavam terminadas a nível de código, mas bloqueadas na fase de implementação (*deploy*) no ambiente de testes.
+    *   *Causa:* O processo de *deploy* manual exigia a intervenção de um único programador, criando um afunilamento de tarefas na coluna "Em Teste" do painel Kanban.
+2.  **Aumento da Taxa de Defeitos (Bugs):** O aumento de 1 para 4 defeitos reportados na Sprint 2 causou retrabalho significativo.
+    *   *Causa:* A pressão para entregar 21 pontos (sobrecarga) levou a uma redução no tempo dedicado à revisão de código (*Code Review*) e falhas na validação da "Definição de Pronto" (DoD).
+
+### 4. Melhorias Aplicadas e Impacto
+
+A partir da análise das métricas na Retrospectiva da Sprint 2, a equipa aplicou imediatamente as seguintes melhorias ao processo:
+
+1.  **Implementação de CI/CD (Melhoria de Processo):** Para resolver o gargalo de *deploy*, a equipa configurou um fluxo (pipeline) básico no GitHub Actions. O *deploy* para o ambiente de *Staging* passou a ser automático sempre que um *Pull Request* é aprovado.
+    *   *Impacto:* A automação eliminou a dependência manual, o que deverá suavizar o gráfico de Burndown na Sprint 3, permitindo entregas mais rápidas e contínuas ao longo dos dias.
+2.  **Limite de WIP (Work in Progress):** A equipa estabeleceu um limite máximo de 2 tarefas em simultâneo na coluna "Em Desenvolvimento" e reforçou o cumprimento estrito da DoD, exigindo aprovação de dois pares antes de avançar qualquer código.
+    *   *Impacto:* Esta limitação forçará a equipa a focar-se em terminar tarefas antes de iniciar novas (reduzindo o paralelismo excessivo), com a expectativa de baixar a taxa de defeitos para o padrão inicial da Sprint 1.
+
+### 5. Relatório de Qualidade do Processo
+
+A análise global revela que a equipa possui maturidade técnica para executar o desenvolvimento, mas enfrentou dificuldades operacionais típicas na gestão da capacidade produtiva. O processo Scrum provou a sua eficácia não por evitar erros, mas por tornar a disfunção da Sprint 2 perfeitamente visível e mensurável através da quebra da *Velocity* e do formato anómalo do *Burndown*. 
+
+As decisões tomadas (automação de CI/CD e imposição de limites de WIP) baseiam-se em dados empíricos e endereçam diretamente as causas raiz identificadas. Conclui-se que a qualidade do processo de inspeção e adaptação é alta, garantindo que a infraestrutura metodológica da equipa está agora mais robusta e preparada para as iterações subsequentes.
