@@ -136,6 +136,49 @@ O cartão da `[US05]` no GitHub Projects foi atualizado para refletir o novo aco
   3. *(NOVO)* Inclusão de um indicador visual de "Clima da Reunião" (Positivo, Neutro, Negativo ou Tenso).
 
 ### 7. Rastreabilidade da Mudança
+
+--- 
+
+## Entrega 4: Requisitos Não Funcionais e Arquitetura
+
+**Integrantes do Grupo:** [Nome 1], [Nome 2], [Nome 3]
+
+### 1. Requisitos Não Funcionais (RNFs) Levantados e Classificados
+Os seguintes requisitos não funcionais foram definidos para garantir a estabilidade, proteção e eficiência da plataforma NexusMeet:
+
+* **[RNF-01] Segurança:** O sistema deve delegar a autenticação de utilizadores a provedores de identidade corporativos (IdP) via protocolo OAuth2/OpenID Connect, não armazenando senhas na base de dados local. Os dados em repouso devem utilizar criptografia AES-256.
+* **[RNF-02] Desempenho:** A pesquisa textual no histórico de reuniões (transcrições e resumos) deve retornar os resultados completos na interface do utilizador em menos de 2 segundos.
+* **[RNF-03] Desempenho:** O processamento do áudio e a devolução do resumo gerado por IA com análise de sentimento não devem exceder o tempo limite de 10 minutos após o término da reunião.
+* **[RNF-04] Usabilidade:** A interface do sistema deve ser responsiva (Single Page Application) para garantir que ações rápidas, como o cancelamento de uma reunião, ocorram em tempo real com apenas um clique e sem recarregamento da página.
+
+### 2. Relações de Rastreabilidade (RNF x Histórias de Usuário)
+Para manter a consistência do backlog, os RNFs afetam diretamente a construção das seguintes histórias de utilizador:
+
+| Requisito Não Funcional | Categoria | História de Usuário Impactada |
+| :--- | :--- | :--- |
+| **RNF-01** | Segurança | **US01** - Login via SSO corporativo. |
+| **RNF-02** | Desempenho | **US07** - Busca de palavras-chave no histórico. |
+| **RNF-03** | Desempenho | **US05** - Geração de resumo automatizado por IA. |
+| **RNF-04** | Usabilidade | **US06** - Cancelamento e reagendamento com um clique. |
+
+### 3. Decisões Arquiteturais e Justificativas Técnicas
+As restrições impostas pelos RNFs moldaram diretamente as seguintes decisões na arquitetura de software:
+
+**Decisão 1: Delegação de Identidade (Federated Identity)**
+* **Motivação:** Atender ao *RNF-01 (Segurança)*.
+* **Justificativa:** Em vez de construir um sistema próprio de gestão de credenciais — o que aumentaria a superfície de ataque e exigiria conformidade pesada com LGPD/GDPR —, optou-se por utilizar o Azure Active Directory e o Google Workspace Identity. Isto transfere a responsabilidade da segurança da senha para a infraestrutura do cliente corporativo, garantindo bloqueio imediato se o funcionário for desligado.
+
+**Decisão 2: Motor de Busca Indexada (Elasticsearch)**
+* **Motivação:** Atender ao *RNF-02 (Desempenho)*.
+* **Justificativa:** Realizar consultas SQL tradicionais (`LIKE %termo%`) em milhares de linhas de texto geradas pelas transcrições derrubaria a performance do banco de dados relacional. A adoção de um motor de busca não relacional invertido (como Elasticsearch ou Algolia) é a única decisão arquitetural capaz de garantir a indexação rápida e o tempo de resposta inferior a 2 segundos.
+
+**Decisão 3: Processamento Assíncrono com Filas de Mensagens (Message Queues)**
+* **Motivação:** Atender ao *RNF-03 (Desempenho)*.
+* **Justificativa:** O envio de grandes blocos de texto para APIs de Inteligência Artificial (LLMs) causa latência severa. Se o servidor principal aguardasse essa resposta, bloquearia os utilizadores. A decisão foi implementar uma arquitetura assíncrona utilizando mensageria (ex: *RabbitMQ* ou *AWS SQS*). A reunião termina, o evento entra na fila e "Workers" (trabalhadores em segundo plano) processam o resumo dentro da janela de 10 minutos sem afetar a estabilidade do servidor principal.
+
+**Decisão 4: Arquitetura Frontend SPA (Single Page Application)**
+* **Motivação:** Atender ao *RNF-04 (Usabilidade)*.
+* **Justificativa:** A necessidade de ações fluidas de "um clique" ditou a separação total entre Frontend (React/Vue) e Backend (RESTful APIs). Esta arquitetura permite interfaces reativas onde um comando de cancelamento atualiza o estado visual instantaneamente, enviando a instrução ao servidor em segundo plano de forma invisível para o utilizador.
 Para garantir a rastreabilidade e a consistência histórica do *backlog*, adotou-se o seguinte protocolo no sistema:
 1. O título da *issue* no GitHub foi alterado para `[US05 - Rev.1] Geração de resumo automatizado com Análise de Sentimento`.
 2. Foi adicionada a *Label* (Etiqueta) amarela `Change Request` ao cartão.
