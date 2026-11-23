@@ -141,48 +141,134 @@ O cartão da `[US05]` no GitHub Projects foi atualizado para refletir o novo aco
 
 ## Entrega 4: Requisitos Não Funcionais e Arquitetura
 
-**Integrantes do Grupo:** [Nome 1], [Nome 2], [Nome 3]
-
 ### 1. Requisitos Não Funcionais (RNFs) Levantados e Classificados
-Os seguintes requisitos não funcionais foram definidos para garantir a estabilidade, proteção e eficiência da plataforma NexusMeet:
 
-* **[RNF-01] Segurança:** O sistema deve delegar a autenticação de utilizadores a provedores de identidade corporativos (IdP) via protocolo OAuth2/OpenID Connect, não armazenando senhas na base de dados local. Os dados em repouso devem utilizar criptografia AES-256.
-* **[RNF-02] Desempenho:** A pesquisa textual no histórico de reuniões (transcrições e resumos) deve retornar os resultados completos na interface do utilizador em menos de 2 segundos.
-* **[RNF-03] Desempenho:** O processamento do áudio e a devolução do resumo gerado por IA com análise de sentimento não devem exceder o tempo limite de 10 minutos após o término da reunião.
-* **[RNF-04] Usabilidade:** A interface do sistema deve ser responsiva (Single Page Application) para garantir que ações rápidas, como o cancelamento de uma reunião, ocorram em tempo real com apenas um clique e sem recarregamento da página.
+Os requisitos não funcionais abaixo foram definidos para garantir a estabilidade, a proteção e a eficiência da plataforma **NexusMeet**. Cada RNF descreve o que o sistema deve atingir, de forma mensurável e sem prescrever a tecnologia; o *como* está registrado nas decisões arquiteturais da Seção 3. Os requisitos estão classificados em cinco categorias de qualidade: Segurança, Desempenho, Usabilidade, Disponibilidade e Confiabilidade.
+
+* **[RNF-01] Segurança (Autenticação):** O sistema deve delegar a autenticação dos usuários a provedores de identidade corporativos (IdP) por meio do protocolo OAuth2/OpenID Connect, sem armazenar senhas na base de dados local.
+* **[RNF-02] Desempenho (Busca):** A pesquisa textual no histórico de reuniões (transcrições e resumos) deve retornar os resultados completos na interface do usuário em menos de 2 segundos.
+* **[RNF-03] Desempenho (Processamento por IA):** O processamento do áudio e a devolução do resumo gerado por IA com análise de sentimento não devem exceder o tempo limite de 10 minutos após o término da reunião.
+* **[RNF-04] Usabilidade (Ações rápidas):** O usuário deve conseguir cancelar ou reagendar uma reunião com um único clique, e o sistema deve exibir o resultado da ação (confirmação ou mensagem de erro) em até 1 segundo, em 95% das ocorrências.
+* **[RNF-05] Segurança (Proteção de dados em repouso):** Todos os dados persistidos pela plataforma (banco de dados, transcrições, resumos, gravações de áudio, índice de busca e backups) devem ser armazenados criptografados com AES-256, com as chaves de criptografia mantidas separadas dos dados e rotacionadas no mínimo uma vez por ano.
+* **[RNF-06] Disponibilidade:** A plataforma deve ter disponibilidade mensal mínima de 99,5% (no máximo cerca de 3 h 36 min de indisponibilidade em um mês de 30 dias), e a falha de um único componente não deve interromper o serviço.
+* **[RNF-07] Confiabilidade:** Nenhum evento de término de reunião pode ser perdido, e falhas temporárias no processamento do resumo (por exemplo, indisponibilidade da API de IA) devem ser tratadas automaticamente por novas tentativas, de modo que ao menos 99% das reuniões encerradas tenham o resumo gerado com sucesso. Os dados devem ter backup diário, com perda máxima aceitável de 24 horas (RPO).
+
+---
 
 ### 2. Relações de Rastreabilidade (RNF x Histórias de Usuário)
-Para manter a consistência do backlog, os RNFs afetam diretamente a construção das seguintes histórias de utilizador:
 
-| Requisito Não Funcional | Categoria | História de Usuário Impactada |
-| :--- | :--- | :--- |
-| **RNF-01** | Segurança | **US01** - Login via SSO corporativo. |
-| **RNF-02** | Desempenho | **US07** - Busca de palavras-chave no histórico. |
-| **RNF-03** | Desempenho | **US05** - Geração de resumo automatizado por IA. |
-| **RNF-04** | Usabilidade | **US06** - Cancelamento e reagendamento com um clique. |
+Para manter a consistência do backlog, cada RNF foi associado às histórias de usuário que ele afeta. A matriz indica o impacto principal (**Principal**), em que o RNF determina diretamente os critérios de aceitação da história, e o impacto secundário (**Secundário**), em que a história depende do RNF para funcionar corretamente.
+
+| RNF | Categoria | US01 (Login via SSO corporativo) | US05 (Resumo automatizado por IA) | US06 (Cancelamento e reagendamento com um clique) | US07 (Busca de palavras-chave no histórico) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **RNF-01** | Segurança (autenticação) | **Principal** | Secundário | Secundário | Secundário |
+| **RNF-02** | Desempenho (busca) | — | Secundário | — | **Principal** |
+| **RNF-03** | Desempenho (IA) | — | **Principal** | — | Secundário |
+| **RNF-04** | Usabilidade | — | — | **Principal** | — |
+| **RNF-05** | Segurança (dados em repouso) | Secundário | **Principal** | Secundário | **Principal** |
+| **RNF-06** | Disponibilidade | **Principal** | Secundário | Secundário | Secundário |
+| **RNF-07** | Confiabilidade | — | **Principal** | Secundário | Secundário |
+
+**Justificativa dos vínculos:**
+* **RNF-01:** Principal em US01 (fluxo de login via IdP); em US05, US06 e US07 o acesso exige um token válido emitido pelo IdP.
+* **RNF-02:** Principal em US07 (tempo de busca); em US05, os resumos gerados precisam ser indexados para poderem ser encontrados.
+* **RNF-03:** Principal em US05 (janela de 10 minutos); em US07, o conteúdo pesquisável só existe depois que o processamento termina.
+* **RNF-04:** Principal em US06, cujo critério de aceitação é a ação em um clique com retorno visual em até 1 segundo.
+* **RNF-05:** Principal em US05 (áudio, transcrições e resumos armazenados) e em US07 (o índice de busca contém o texto das reuniões); em US01 e US06 protege dados de perfil, sessão e agendamento.
+* **RNF-06:** Principal em US01, pois sem o login nenhuma outra história é acessível; em US05, US06 e US07 a indisponibilidade impede o uso da funcionalidade.
+* **RNF-07:** Principal em US05 (nenhum evento de fim de reunião pode ser perdido); em US06, as alterações de agenda devem ser gravadas de forma durável; em US07, o índice deve poder ser reconstruído a partir dos dados com backup.
+
+---
 
 ### 3. Decisões Arquiteturais e Justificativas Técnicas
-As restrições impostas pelos RNFs moldaram diretamente as seguintes decisões na arquitetura de software:
 
-**Decisão 1: Delegação de Identidade (Federated Identity)**
-* **Motivação:** Atender ao *RNF-01 (Segurança)*.
-* **Justificativa:** Em vez de construir um sistema próprio de gestão de credenciais — o que aumentaria a superfície de ataque e exigiria conformidade pesada com LGPD/GDPR —, optou-se por utilizar o Azure Active Directory e o Google Workspace Identity. Isto transfere a responsabilidade da segurança da senha para a infraestrutura do cliente corporativo, garantindo bloqueio imediato se o funcionário for desligado.
+As restrições impostas pelos RNFs moldaram diretamente as decisões a seguir. Cada RNF é atendido por ao menos uma decisão arquitetural específica, conforme a tabela abaixo:
 
-**Decisão 2: Motor de Busca Indexada (Elasticsearch)**
-* **Motivação:** Atender ao *RNF-02 (Desempenho)*.
-* **Justificativa:** Realizar consultas SQL tradicionais (`LIKE %termo%`) em milhares de linhas de texto geradas pelas transcrições derrubaria a performance do banco de dados relacional. A adoção de um motor de busca não relacional invertido (como Elasticsearch ou Algolia) é a única decisão arquitetural capaz de garantir a indexação rápida e o tempo de resposta inferior a 2 segundos.
+| Decisão | Tema | RNF atendido |
+| :--- | :--- | :--- |
+| **Decisão 1** | Delegação de Identidade (Federated Identity) | RNF-01 (Segurança - autenticação) |
+| **Decisão 2** | Motor de Busca Indexada (Elasticsearch) | RNF-02 (Desempenho - busca) |
+| **Decisão 3** | Processamento Assíncrono com Filas de Mensagens | RNF-03 (Desempenho - IA) |
+| **Decisão 4** | Frontend SPA com atualização otimista | RNF-04 (Usabilidade) |
+| **Decisão 5** | Criptografia em Repouso com Gerenciamento de Chaves (KMS) | RNF-05 (Segurança - dados em repouso) |
+| **Decisão 6** | Alta Disponibilidade com Redundância e Failover | RNF-06 (Disponibilidade) |
+| **Decisão 7** | Tolerância a Falhas no Processamento Assíncrono e Backups | RNF-07 (Confiabilidade) |
 
-**Decisão 3: Processamento Assíncrono com Filas de Mensagens (Message Queues)**
-* **Motivação:** Atender ao *RNF-03 (Desempenho)*.
-* **Justificativa:** O envio de grandes blocos de texto para APIs de Inteligência Artificial (LLMs) causa latência severa. Se o servidor principal aguardasse essa resposta, bloquearia os utilizadores. A decisão foi implementar uma arquitetura assíncrona utilizando mensageria (ex: *RabbitMQ* ou *AWS SQS*). A reunião termina, o evento entra na fila e "Workers" (trabalhadores em segundo plano) processam o resumo dentro da janela de 10 minutos sem afetar a estabilidade do servidor principal.
+#### Decisão 1: Delegação de Identidade (Federated Identity)
+* **Motivação:** Atender ao RNF-01 (Segurança - autenticação).
+* **Justificativa:** Em vez de construir um sistema próprio de gestão de credenciais, o que aumentaria a superfície de ataque e exigiria conformidade pesada com regulamentações de proteção de dados, optou-se por utilizar o Microsoft Entra ID (antigo Azure Active Directory) e o Google Workspace Identity como provedores de identidade. Isso transfere a responsabilidade pela segurança da senha para a infraestrutura do cliente corporativo: quando um funcionário é desligado e sua conta é desativada no IdP, o NexusMeet deixa de receber tokens válidos para ele, e o acesso é encerrado, no máximo, quando expirar o token de acesso, configurado com validade curta (por exemplo, 15 minutos).
 
-**Decisão 4: Arquitetura Frontend SPA (Single Page Application)**
-* **Motivação:** Atender ao *RNF-04 (Usabilidade)*.
-* **Justificativa:** A necessidade de ações fluidas de "um clique" ditou a separação total entre Frontend (React/Vue) e Backend (RESTful APIs). Esta arquitetura permite interfaces reativas onde um comando de cancelamento atualiza o estado visual instantaneamente, enviando a instrução ao servidor em segundo plano de forma invisível para o utilizador.
-Para garantir a rastreabilidade e a consistência histórica do *backlog*, adotou-se o seguinte protocolo no sistema:
-1. O título da *issue* no GitHub foi alterado para `[US05 - Rev.1] Geração de resumo automatizado com Análise de Sentimento`.
-2. Foi adicionada a *Label* (Etiqueta) amarela `Change Request` ao cartão.
-3. O motivo da mudança e a justificação técnica foram registados como um comentário fixado na própria *issue*, documentando a alteração na latência exigida e o impacto nos *Story Points*.
+#### Decisão 2: Motor de Busca Indexada (Elasticsearch)
+* **Motivação:** Atender ao RNF-02 (Desempenho – busca).
+* **Justificativa:** Realizar consultas tradicionais (como `LIKE`) em bases de dados relacionais abrangendo milhares de linhas de texto (transcrições) degradaria a performance do sistema. A adoção de um motor de busca baseado em índice invertido (como Elasticsearch ou Algolia) é a decisão mais adequada para garantir a indexação eficiente e o tempo de resposta inferior a 2 segundos exigido pelo RNF-02. O índice é atualizado ao final do processamento de cada reunião (Decisão 3), de modo que transcrições e resumos se tornem pesquisáveis assim que ficam prontos.
+
+#### Decisão 3: Processamento Assíncrono com Filas de Mensagens (Message Queues)
+* **Motivação:** Atender ao RNF-03 (Desempenho – IA).
+* **Justificativa:** O envio de grandes blocos de texto para APIs de Inteligência Artificial causa latência severa. Se o servidor principal aguardasse essa resposta, bloquearia os usuários. A decisão foi implementar uma arquitetura assíncrona baseada em mensageria: quando a reunião termina, o evento entra em uma fila e processadores em segundo plano (*workers*) geram o resumo dentro da janela de 10 minutos, sem afetar a estabilidade do servidor principal. Os *workers* podem ser escalados de forma independente, conforme o volume de reuniões encerradas.
+
+#### Decisão 4: Arquitetura Frontend SPA (Single Page Application)
+* **Motivação:** Atender ao RNF-04 (Usabilidade).
+* **Justificativa:** O RNF-04 define o resultado esperado (ação em um clique, com retorno visual em até 1 segundo); a SPA é a solução adotada para alcançá-lo. A necessidade de ações fluidas ditou a separação total entre a interface (React ou Vue) e o servidor de dados (APIs RESTful). Nessa arquitetura, a interface aplica a atualização otimista: ao clicar em cancelar, o estado visual é atualizado instantaneamente enquanto a instrução é enviada ao servidor em segundo plano, sem recarregar a página. Se o servidor rejeitar a operação, a interface reverte a mudança e exibe uma mensagem de erro, mantendo o limite de 1 segundo para o retorno ao usuário.
+
+#### Decisão 5: Criptografia em Repouso com Gerenciamento de Chaves (KMS)
+* **Motivação:** Atender ao RNF-05 (Segurança - proteção de dados em repouso).
+* **Justificativa:** Implementar AES-256 manualmente no código da aplicação aumentaria a complexidade e o risco de erros criptográficos. Optou-se por usar a criptografia em repouso nativa dos serviços gerenciados, com as chaves mestras em um serviço de gerenciamento de chaves (KMS), como AWS KMS, Azure Key Vault ou Google Cloud KMS, aplicando *envelope encryption*: cada dado é cifrado com uma chave de dados, que por sua vez é cifrada pela chave mestra mantida no KMS. Com isso, (i) as chaves ficam separadas dos dados; (ii) a rotação anual da chave mestra não exige recifrar todo o conteúdo; e (iii) o acesso às chaves é restrito pelo princípio do menor privilégio e auditado.
+
+| Componente | Dados protegidos | Mecanismo (AES-256) |
+| :--- | :--- | :--- |
+| **Banco de dados relacional** | Identificadores de usuários, reuniões e agendamentos | Criptografia transparente do serviço gerenciado, com chave mestra no KMS |
+| **Armazenamento de objetos** | Gravações de áudio e arquivos de transcrição | Criptografia no lado do servidor (SSE) com chave do KMS |
+| **Índice de busca (Elasticsearch)** | Texto indexado de transcrições e resumos | Criptografia dos volumes e *snapshots* do *cluster*, com chave do KMS |
+| **Backups e snapshots** | Cópias de todos os itens acima | Herdam a criptografia da origem; chaves gerenciadas no KMS |
+
+Como a Decisão 2 replica o texto das transcrições no índice de busca, o índice também precisa ser cifrado; caso contrário, o conteúdo ficaria exposto em texto claro mesmo com o banco de dados protegido. Complementarmente, toda comunicação entre os componentes utiliza TLS 1.2 ou superior.
+
+#### Decisão 6: Alta Disponibilidade com Redundância e Failover
+* **Motivação:** Atender ao RNF-06 (Disponibilidade).
+* **Justificativa:** Para atingir 99,5% de disponibilidade mensal, eliminam-se os pontos únicos de falha: (i) a API da aplicação é *stateless* e executa em no mínimo duas instâncias, em zonas de disponibilidade distintas, atrás de um balanceador de carga com verificação de saúde (*health checks*) que retira do tráfego as instâncias com falha; (ii) o banco de dados opera com réplica em espera e *failover* automático; (iii) o *cluster* de busca mantém ao menos uma réplica de cada *shard*; e (iv) os *workers* da fila são independentes e substituíveis individualmente. Em razão da Decisão 1, o login depende da disponibilidade do IdP corporativo, que está fora do controle da plataforma; as sessões já iniciadas continuam válidas até a expiração do token de acesso.
+
+#### Decisão 7: Tolerância a Falhas no Processamento Assíncrono e Backups
+* **Motivação:** Atender ao RNF-07 (Confiabilidade).
+* **Justificativa:** Complementa a Decisão 3 para que o processamento assíncrono seja confiável: (i) a fila é durável, com mensagens persistidas em disco e removidas somente após a confirmação (*ack*) do *worker*, evitando a perda do evento de término de reunião; (ii) falhas temporárias, como indisponibilidade ou *timeout* da API de IA, disparam até 3 novas tentativas com espera progressiva (*backoff* exponencial), dimensionada para caber, sempre que possível, na janela de 10 minutos do RNF-03; (iii) as mensagens que esgotam as tentativas vão para uma fila de mensagens mortas (*Dead Letter Queue*), com alerta e reprocessamento posterior, e o usuário é notificado de que o resumo está atrasado; (iv) o processamento é idempotente, usando o identificador da reunião como chave, para que uma reentrega da mensagem não gere resumos duplicados; e (v) *backups* automáticos diários, com retenção de 30 dias, permitem a recuperação dos dados com perda máxima de 24 horas (RPO).
+
+---
+
+### 4. Histórico de Revisões
+
+| Versão | Alterações |
+| :--- | :--- |
+| **1.0** | Versão original: 4 RNFs e 4 decisões arquiteturais. |
+| **2.0** | (a) RNF-01 dividido: a proteção de dados em repouso (AES-256) passou a ser o RNF-05, com decisão arquitetural própria (Decisão 5).<br>(b) RNF-04 reescrito como requisito mensurável, sem citar tecnologia; a SPA permanece como solução na Decisão 4.<br>(c) Incluídos o RNF-06 (Disponibilidade) e o RNF-07 (Confiabilidade), com as Decisões 6 e 7.<br>(d) Matriz de rastreabilidade ampliada: cada RNF passou a ser ligado a mais de uma história de usuário (impacto principal e secundário) e a uma decisão arquitetural. |
+
+#### Decisão 5: Criptografia em Repouso com Gerenciamento de Chaves (KMS)
+* **Motivação:** Atender ao RNF-05 (Segurança - proteção de dados em repouso).
+* **Justificativa:** Implementar AES-256 manualmente no código da aplicação aumentaria a complexidade e o risco de erros criptográficos[cite: 13]. Optou-se por usar a criptografia em repouso nativa dos serviços gerenciados, com as chaves mestras em um serviço de gerenciamento de chaves (KMS), como AWS KMS, Azure Key Vault ou Google Cloud KMS, aplicando *envelope encryption*: cada dado é cifrado com uma chave de dados, que por sua vez é cifrada pela chave mestra mantida no KMS. Com isso, (i) as chaves ficam separadas dos dados; (ii) a rotação anual da chave mestra não exige recifrar todo o conteúdo; e (iii) o acesso às chaves é restrito pelo princípio do menor privilégio e auditado.
+
+| Componente | Dados protegidos | Mecanismo (AES-256) |
+| :--- | :--- | :--- |
+| **Banco de dados relacional** | Identificadores de usuários, reuniões e agendamentos[cit | Criptografia transparente do serviço gerenciado, com chave mestra no KMS[cite: 13] |
+| **Armazenamento de objetos** | Gravações de áudio e arquivos de transcrição[cite: 13] | Criptografia no lado do servidor (SSE) com chave do KMS[cite: 13] |
+| **Índice de busca (Elasticsearch)** | Texto indexado de transcrições e resumos[cite: 13] | Criptografia dos volumes e *snapshots* do *cluster*, com chave do KMS[cite: 13] |
+| **Backups e snapshots** | Cópias de todos os itens acima[cite: 13] | Herdam a criptografia da origem; chaves gerenciadas no KMS[cite: 13] |
+
+Como a Decisão 2 replica o texto das transcrições no índice de busca, o índice também precisa ser cifrado; caso contrário, o conteúdo ficaria exposto em texto claro mesmo com o banco de dados protegido[cite: 13]. Complementarmente, toda comunicação entre os componentes utiliza TLS 1.2 ou superior[cite: 13].
+
+#### Decisão 6: Alta Disponibilidade com Redundância e Failover
+* **Motivação:** Atender ao RNF-06 (Disponibilidade)[cite: 14].
+* **Justificativa:** Para atingir 99,5% de disponibilidade mensal, eliminam-se os pontos únicos de falha: (i) a API da aplicação é *stateless* e executa em no mínimo duas instâncias, em zonas de disponibilidade distintas, atrás de um balanceador de carga com verificação de saúde (*health checks*) que retira do tráfego as instâncias com falha; (ii) o banco de dados opera com réplica em espera e *failover* automático; (iii) o *cluster* de busca mantém ao menos uma réplica de cada *shard*; e (iv) os *workers* da fila são independentes e substituíveis individualmente[cite: 14]. Em razão da Decisão 1, o login depende da disponibilidade do IdP corporativo, que está fora do controle da plataforma; as sessões já iniciadas continuam válidas até a expiração do token de acesso[cite: 14].
+
+#### Decisão 7: Tolerância a Falhas no Processamento Assíncrono e Backups
+* **Motivação:** Atender ao RNF-07 (Confiabilidade)[cite: 14].
+* **Justificativa:** Complementa a Decisão 3 para que o processamento assíncrono seja confiável: (i) a fila é durável, com mensagens persistidas em disco e removidas somente após a confirmação (*ack*) do *worker*, evitando a perda do evento de término de reunião; (ii) falhas temporárias, como indisponibilidade ou *timeout* da API de IA, disparam até 3 novas tentativas com espera progressiva (*backoff* exponencial), dimensionada para caber, sempre que possível, na janela de 10 minutos do RNF-03; (iii) as mensagens que esgotam as tentativas vão para uma fila de mensagens mortas (*Dead Letter Queue*), com alerta e reprocessamento posterior, e o usuário é notificado de que o resumo está atrasado; (iv) o processamento é idempotente, usando o identificador da reunião como chave, para que uma reentrega da mensagem não gere resumos duplicados; e (v) *backups* automáticos diários, com retenção de 30 dias, permitem a recuperação dos dados com perda máxima de 24 horas.
+
+---
+
+### 4. Histórico de Revisões
+
+| Versão | Alterações |
+| :--- | :--- |
+| **1.0** | Versão original: 4 RNFs e 4 decisões arquiteturais[cite: 14]. |
+| **2.0** | (a) RNF-01 dividido: a proteção de dados em repouso (AES-256) passou a ser o RNF-05, com decisão arquitetural própria (Decisão 5)[cite: 14].<br>(b) RNF-04 reescrito como requisito mensurável, sem citar tecnologia; a SPA permanece como solução na Decisão 4[cite: 14].<br>(c) Incluídos o RNF-06 (Disponibilidade) e o RNF-07 (Confiabilidade), com as Decisões 6 e 7[cite: 14].<br>(d) Matriz de rastreabilidade ampliada: cada RNF passou a ser ligado a mais de uma história de usuário (impacto principal e secundário) e a uma decisão arquitetural[cite: 14]. |
 
 --- 
 
