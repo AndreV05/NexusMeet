@@ -1,0 +1,28 @@
+name: CI/CD NexusMeet
+
+on:
+  pull_request_review:
+    types: [submitted]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    if: github.event_name == 'workflow_dispatch' || github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Build e testes (simulado)
+        run: |
+          echo "Executando build e testes unitários (simulado)..."
+          echo "Repositório ainda sem código da aplicação."
+
+  deploy-staging:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Deploy para Staging (simulado)
+        run: |
+          echo "Deploy simulado para o ambiente de Staging"
+          echo "Gatilho: ${{ github.event_name }}"
